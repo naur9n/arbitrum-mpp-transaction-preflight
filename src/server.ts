@@ -6,6 +6,10 @@ import { createFacilitatorConfig } from '@coinbase/x402';
 import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { paymentMiddleware, x402ResourceServer } from '@x402/express';
+import {
+  bazaarResourceServerExtension,
+  declareDiscoveryExtension,
+} from '@x402/extensions/bazaar';
 import { createPublicClient, formatEther, getAddress, http, isAddress } from 'viem';
 import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -224,7 +228,8 @@ if (config.enableX402) {
     createFacilitatorConfig(config.cdpApiKeyId, config.cdpApiKeySecret),
   );
   const x402Server = new x402ResourceServer(facilitatorClient)
-    .register(x402Network, new ExactEvmScheme());
+    .register(x402Network, new ExactEvmScheme())
+    .registerExtension(bazaarResourceServerExtension);
   const x402Price = `$${(Number(config.priceRawUsdc) / 1_000_000).toFixed(2)}`;
 
   app.use(paymentMiddleware({
@@ -237,23 +242,34 @@ if (config.enableX402) {
       }],
       description: 'Simulate and risk-score an Arbitrum transaction before signing.',
       mimeType: 'application/json',
-      extensions: {
-        bazaar: {
-          discoverable: true,
-          category: 'security',
-          tags: ['arbitrum', 'wallet', 'transaction-simulation', 'risk', 'ai-agent'],
-          info: {
-            input: {
-              body: {
-                from: '0x0000000000000000000000000000000000000001',
-                to: '0x0000000000000000000000000000000000000002',
-                data: '0x',
-                valueEth: '0',
-              },
+      serviceName: 'Arbitrum Transaction Preflight',
+      tags: ['arbitrum', 'wallet', 'transaction-simulation', 'risk', 'ai-agent'],
+      extensions: declareDiscoveryExtension({
+          bodyType: 'json',
+          input: {
+            from: '0x0000000000000000000000000000000000000001',
+            to: '0x0000000000000000000000000000000000000002',
+            data: '0x',
+            valueEth: '0',
+          },
+          inputSchema: {
+            properties: {
+              from: { type: 'string', description: 'EVM sender address.' },
+              to: { type: 'string', description: 'Arbitrum transaction target.' },
+              data: { type: 'string', description: '0x-prefixed calldata.' },
+              valueEth: { type: 'string', description: 'Native ETH value as a decimal string.' },
+            },
+            required: ['from', 'to'],
+          },
+          output: {
+            example: {
+              network: 'Arbitrum One',
+              chainId: 42161,
+              simulation: { success: true },
+              risk: { score: 0, level: 'low', warnings: [] },
             },
           },
-        },
-      },
+      }),
     },
   }, x402Server));
 
