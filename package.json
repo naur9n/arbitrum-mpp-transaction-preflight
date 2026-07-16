@@ -9,12 +9,25 @@
     "url": "https://github.com/naur9n/arbitrum-mpp-transaction-preflight.git"
   },
   "homepage": "https://arbitrum-mpp-transaction-preflight-production.up.railway.app",
-  "keywords": ["arbitrum", "mpp", "x402", "mcp", "ai-agent", "transaction-simulation", "usdc"],
+  "keywords": [
+    "arbitrum",
+    "mpp",
+    "x402",
+    "mcp",
+    "ai-agent",
+    "transaction-simulation",
+    "usdc"
+  ],
   "type": "module",
   "bin": {
     "arbitrum-preflight-mcp": "dist/mcp.js"
   },
-  "files": ["dist", "public", "README.md", "server.json"],
+  "files": [
+    "dist",
+    "public",
+    "README.md",
+    "server.json"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "server": "tsx src/server.ts",
@@ -41,6 +54,6 @@
     "@types/express": "5.0.3",
     "@types/node": "24.0.13",
     "tsx": "4.23.1",
-    "typescript": "7.0.2"
+    "typescript": "^5.9.3"
   }
 }
