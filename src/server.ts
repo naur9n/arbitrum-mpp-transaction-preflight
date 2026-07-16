@@ -40,6 +40,7 @@ const payments = Mppx.create({
 });
 
 const app = express();
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(express.json({ limit: '32kb' }));
 
