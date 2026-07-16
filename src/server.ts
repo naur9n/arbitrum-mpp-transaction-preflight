@@ -3,15 +3,19 @@ import { Mppx } from 'mppx/express';
 import { charge } from '@arbitrum/mpp/server';
 import * as defaults from '@arbitrum/mpp/default';
 import { createPublicClient, formatEther, getAddress, http, isAddress } from 'viem';
-import { arbitrumSepolia } from 'viem/chains';
+import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import { config, privateKey } from './config.js';
+import { config, network, privateKey } from './config.js';
 import { parsePreflightInput, runPreflight } from './preflight.js';
 
 const serverKey = privateKey('SERVER_PRIVATE_KEY');
 const merchant = privateKeyToAccount(serverKey);
+const selectedChain = network.isMainnet ? arbitrum : arbitrumSepolia;
+const usdc = network.isMainnet
+  ? defaults.TOKEN_CONTRACTS.USDC_ARBITRUM_ONE
+  : defaults.TOKEN_CONTRACTS.USDC_ARBITRUM_SEPOLIA;
 const chainClient = createPublicClient({
-  chain: arbitrumSepolia,
+  chain: selectedChain,
   transport: http(config.rpcUrl),
 });
 
@@ -19,7 +23,7 @@ const payments = Mppx.create({
   methods: [
     charge({
       recipient: merchant.address,
-      currency: defaults.TOKEN_CONTRACTS.USDC_ARBITRUM_SEPOLIA,
+      currency: usdc,
       methodDetails: { chainId: config.chainId, decimals: 6 },
       account: merchant,
     }),
@@ -34,7 +38,7 @@ app.use(express.json({ limit: '32kb' }));
 app.get('/', (_req, res) => {
   res.json({
     product: 'Arbitrum MPP Wallet Preflight API',
-    network: 'Arbitrum Sepolia',
+    network: network.name,
     payment: 'MPP / EIP-3009 / USDC',
     priceRawUsdc: config.priceRawUsdc,
     priceUsdc: (Number(config.priceRawUsdc) / 1_000_000).toString(),
@@ -57,7 +61,7 @@ app.get(
   },
   payments.charge({
     amount: config.priceRawUsdc,
-    currency: defaults.TOKEN_CONTRACTS.USDC_ARBITRUM_SEPOLIA,
+    currency: usdc,
     recipient: merchant.address,
     description: 'Arbitrum wallet preflight report',
     methodDetails: {
@@ -149,6 +153,7 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 
 app.listen(config.port, () => {
   console.log(`MPP merchant: ${merchant.address}`);
+  console.log(`Network: ${network.name} (${config.chainId})`);
   console.log(`Server: http://localhost:${config.port}`);
   console.log(`Price: ${config.priceRawUsdc} raw USDC units`);
 });

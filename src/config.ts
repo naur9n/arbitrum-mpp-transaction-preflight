@@ -16,13 +16,22 @@ export function privateKey(name: 'SERVER_PRIVATE_KEY' | 'CLIENT_PRIVATE_KEY'): H
 }
 
 export const config = {
-  chainId: 421614,
-  rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC ?? 'https://sepolia-rollup.arbitrum.io/rpc',
-  priceRawUsdc: process.env.PRICE_RAW_USDC ?? '1000',
+  chainId: Number(process.env.CHAIN_ID ?? '421614'),
+  rpcUrl: process.env.ARBITRUM_RPC,
+  priceRawUsdc: process.env.PRICE_RAW_USDC ?? '100000',
   port: Number(process.env.PORT ?? '3000'),
   serverUrl: process.env.SERVER_URL ?? 'http://localhost:3000',
   enableFreeDemo: process.env.ENABLE_FREE_DEMO === 'true',
 };
+
+if (config.chainId !== 42161 && config.chainId !== 421614) {
+  throw new Error('CHAIN_ID must be 42161 (Arbitrum One) or 421614 (Arbitrum Sepolia).');
+}
+
+export const network = {
+  name: config.chainId === 42161 ? 'Arbitrum One' : 'Arbitrum Sepolia',
+  isMainnet: config.chainId === 42161,
+} as const;
 
 if (!/^\d+$/.test(config.priceRawUsdc) || BigInt(config.priceRawUsdc) <= 0n) {
   throw new Error('PRICE_RAW_USDC must be a positive integer in raw 6-decimal USDC units.');

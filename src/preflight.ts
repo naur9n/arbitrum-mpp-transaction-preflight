@@ -10,6 +10,7 @@ import {
   type Hex,
   type PublicClient,
 } from 'viem';
+import { config, network } from './config.js';
 
 const approvalAbi = [
   {
@@ -190,8 +191,8 @@ export async function runPreflight(client: PublicClient, input: PreflightInput) 
   const riskLevel = riskScore >= 60 ? 'high' : riskScore >= 30 ? 'medium' : 'low';
 
   return {
-    network: 'Arbitrum Sepolia',
-    chainId: 421614,
+    network: network.name,
+    chainId: config.chainId,
     transaction: {
       ...input,
       value: input.value.toString(),

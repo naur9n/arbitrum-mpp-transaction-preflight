@@ -1,6 +1,6 @@
 # Arbitrum MPP Wallet Preflight API
 
-A small, sellable Machine Payments Protocol integration demo and transaction
+A deployable Machine Payments Protocol integration and transaction
 simulation API. An AI agent or
 script calls a paid HTTP endpoint, receives `402 Payment Required`, signs a
 gasless USDC authorization, retries automatically, and receives an Arbitrum
@@ -10,7 +10,7 @@ wallet preflight report after the merchant settles payment onchain.
 
 - HTTP 402 machine-payment flow
 - Gasless payment experience for the payer
-- USDC settlement on Arbitrum Sepolia using EIP-3009
+- USDC settlement on Arbitrum One or Arbitrum Sepolia using EIP-3009
 - Merchant-side verification and settlement
 - A useful paid response: transaction simulation, revert detection, gas estimate,
   target-code inspection, approval analysis, risk score, and checked block
@@ -42,8 +42,12 @@ CLIENT_PRIVATE_KEY=0x...
 TARGET_ADDRESS=0x...
 ```
 
-The default price is `1000` raw USDC units, equal to `0.001 USDC`. Change
+The default price is `100000` raw USDC units, equal to `0.10 USDC`. Change
 `PRICE_RAW_USDC` to set another price. MPP currently expects raw units.
+
+Use `CHAIN_ID=421614` for testnet and `CHAIN_ID=42161` for production on
+Arbitrum One. Set `ARBITRUM_RPC` to a dedicated RPC for production or omit it
+to use viem's public default.
 
 ## Run
 
@@ -120,9 +124,9 @@ conversion, or agent action. Keep the MPP middleware and configure:
 4. endpoint description;
 5. deployment environment and secret storage.
 
-For production, move to Arbitrum One, use a dedicated RPC, store the merchant
-key in a secrets manager, add rate limiting and observability, and complete a
-security review before accepting real payments.
+For production, set `CHAIN_ID=42161`, use a dedicated RPC, store the merchant
+key only in the hosting provider's secret variables, keep `ENABLE_FREE_DEMO=false`,
+and fund the merchant address with a small amount of Arbitrum One ETH for gas.
 
 ## Current protocol constraints
 
