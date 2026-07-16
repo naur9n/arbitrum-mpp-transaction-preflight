@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.naur9n/arbitrum-transaction-preflight",
-  "description": "Paid Arbitrum transaction simulation, gas estimation, approval detection, and risk scoring for AI agents.",
+  "description": "Paid Arbitrum transaction simulation and risk scoring for wallets and AI agents.",
   "repository": {
     "url": "https://github.com/naur9n/arbitrum-mpp-transaction-preflight",
     "source": "github"
@@ -12,11 +12,29 @@
       "registryType": "npm",
       "identifier": "arbitrum-mpp-transaction-preflight",
       "version": "4.0.0",
-      "transport": { "type": "stdio" },
+      "transport": {
+        "type": "stdio"
+      },
       "environmentVariables": [
-        { "name": "CLIENT_PRIVATE_KEY", "description": "Dedicated low-value payer key.", "isRequired": true, "isSecret": true, "format": "string" },
-        { "name": "SERVER_URL", "description": "Hosted paid API base URL.", "isRequired": false, "format": "string" },
-        { "name": "CHAIN_ID", "description": "42161 for Arbitrum One.", "isRequired": false, "format": "string" }
+        {
+          "name": "CLIENT_PRIVATE_KEY",
+          "description": "Dedicated low-value payer key.",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "SERVER_URL",
+          "description": "Hosted paid API base URL.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "CHAIN_ID",
+          "description": "42161 for Arbitrum One.",
+          "isRequired": false,
+          "format": "string"
+        }
       ]
     }
   ]
