@@ -15,13 +15,20 @@ export function privateKey(name: 'SERVER_PRIVATE_KEY' | 'CLIENT_PRIVATE_KEY'): H
   return value as Hex;
 }
 
+const inferredServerUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  : 'http://localhost:3000';
+
 export const config = {
-  chainId: Number(process.env.CHAIN_ID ?? '421614'),
+  chainId: Number(process.env.CHAIN_ID ?? '42161'),
   rpcUrl: process.env.ARBITRUM_RPC,
   priceRawUsdc: process.env.PRICE_RAW_USDC ?? '100000',
   port: Number(process.env.PORT ?? '3000'),
-  serverUrl: process.env.SERVER_URL ?? 'http://localhost:3000',
+  serverUrl: process.env.SERVER_URL ?? inferredServerUrl,
   enableFreeDemo: process.env.ENABLE_FREE_DEMO === 'true',
+  enableX402: process.env.ENABLE_X402 === 'true',
+  cdpApiKeyId: process.env.CDP_API_KEY_ID,
+  cdpApiKeySecret: process.env.CDP_API_KEY_SECRET,
 };
 
 if (config.chainId !== 42161 && config.chainId !== 421614) {
@@ -35,6 +42,10 @@ export const network = {
 
 if (!/^\d+$/.test(config.priceRawUsdc) || BigInt(config.priceRawUsdc) <= 0n) {
   throw new Error('PRICE_RAW_USDC must be a positive integer in raw 6-decimal USDC units.');
+}
+
+if (config.enableX402 && (!config.cdpApiKeyId || !config.cdpApiKeySecret)) {
+  throw new Error('ENABLE_X402=true requires CDP_API_KEY_ID and CDP_API_KEY_SECRET.');
 }
 
 export function targetAddress() {

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Paid Arbitrum transaction simulation and risk reports for wallets, bots, and AI agents.">
+  <title>Arbitrum Transaction Preflight</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080b14;--card:#111728;--line:#26314c;--text:#f4f7ff;--muted:#aab5d0;--blue:#55a7ff;--cyan:#55e6d2}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 10%,#173c66 0,transparent 34%),radial-gradient(circle at 10% 70%,#123b38 0,transparent 32%),var(--bg);color:var(--text);font:16px/1.6 Inter,ui-sans-serif,system-ui,sans-serif}
+    main{max-width:1080px;margin:auto;padding:24px}.nav{display:flex;justify-content:space-between;align-items:center;padding:12px 0}.brand{font-weight:800;letter-spacing:-.02em}.pill{border:1px solid var(--line);border-radius:99px;padding:6px 12px;color:var(--cyan);background:#0d1720}
+    .hero{padding:92px 0 70px;max-width:850px}.eyebrow{color:var(--cyan);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:13px}h1{font-size:clamp(44px,8vw,82px);line-height:1.02;letter-spacing:-.055em;margin:18px 0 24px}h1 span{background:linear-gradient(90deg,var(--blue),var(--cyan));color:transparent;background-clip:text}.lead{font-size:21px;color:var(--muted);max-width:720px}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}.btn{display:inline-block;padding:13px 18px;border-radius:10px;text-decoration:none;font-weight:750}.primary{background:linear-gradient(90deg,var(--blue),var(--cyan));color:#06101c}.secondary{border:1px solid var(--line);color:var(--text);background:#101725}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:30px 0 70px}.card{background:linear-gradient(145deg,#121a2cdd,#0d1321dd);border:1px solid var(--line);border-radius:16px;padding:24px}.card h2{margin:0 0 8px;font-size:19px}.card p{margin:0;color:var(--muted)}
+    .price{display:flex;justify-content:space-between;gap:28px;align-items:center;padding:30px;border:1px solid #35688a;border-radius:18px;background:#102135}.price strong{font-size:40px;letter-spacing:-.04em}.price small{display:block;color:var(--muted)}
+    pre{overflow:auto;background:#070b12;border:1px solid var(--line);padding:22px;border-radius:14px;color:#bce7ff;margin:28px 0 60px}footer{border-top:1px solid var(--line);margin-top:70px;padding:28px 0;color:var(--muted);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}footer a{color:var(--blue)}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}.hero{padding-top:60px}.price{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body><main>
+  <nav class="nav"><div class="brand">ARBITRUM / PREFLIGHT</div><div class="pill">Live on Arbitrum One</div></nav>
+  <section class="hero">
+    <div class="eyebrow">Transaction safety for machines</div>
+    <h1>Check before your agent <span>signs.</span></h1>
+    <p class="lead">Simulate Arbitrum transactions, estimate gas, detect dangerous approvals, and receive a structured risk report—paid per request with USDC.</p>
+    <div class="actions"><a class="btn primary" href="/openapi.json">View OpenAPI</a><a class="btn secondary" href="https://github.com/naur9n/arbitrum-mpp-transaction-preflight">GitHub</a><a class="btn secondary" href="/llms.txt">Agent instructions</a></div>
+  </section>
+  <section class="grid">
+    <article class="card"><h2>Simulation</h2><p>Catch reverts and inspect return data before submitting the real transaction.</p></article>
+    <article class="card"><h2>Approval detection</h2><p>Flag ERC-20 approvals, unlimited allowances, and NFT approval-for-all calls.</p></article>
+    <article class="card"><h2>Agent native</h2><p>MPP, x402-ready discovery, OpenAPI, llms.txt, and an installable MCP tool.</p></article>
+  </section>
+  <section class="price"><div><small>Launch price per risk report</small><strong>$0.10 USDC</strong></div><div><b>No account. No API key. No subscription.</b><small>HTTP 402 payment on Arbitrum One</small></div></section>
+  <pre><code>POST /v1/preflight
+
+{
+  "from": "0x...",
+  "to": "0x...",
+  "data": "0x",
+  "valueEth": "0"
+}</code></pre>
+  <footer><span>Automated simulation and heuristics are not a guarantee of safety.</span><span><a href="/api">API metadata</a> · <a href="/health">Status</a></span></footer>
+</main></body></html>

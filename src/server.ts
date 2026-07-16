@@ -1,7 +1,11 @@
 import express from 'express';
-import { Mppx } from 'mppx/express';
+import { Mppx, discovery } from 'mppx/express';
 import { charge } from '@arbitrum/mpp/server';
 import * as defaults from '@arbitrum/mpp/default';
+import { createFacilitatorConfig } from '@coinbase/x402';
+import { HTTPFacilitatorClient } from '@x402/core/server';
+import { ExactEvmScheme } from '@x402/evm/exact/server';
+import { paymentMiddleware, x402ResourceServer } from '@x402/express';
 import { createPublicClient, formatEther, getAddress, http, isAddress } from 'viem';
 import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -35,7 +39,23 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '32kb' }));
 
-app.get('/', (_req, res) => {
+const preflightRequestSchema = {
+  type: 'object',
+  required: ['from', 'to'],
+  properties: {
+    from: { type: 'string', description: 'Checksummed or lowercase EVM sender address.' },
+    to: { type: 'string', description: 'EVM transaction target address.' },
+    data: { type: 'string', default: '0x', description: '0x-prefixed calldata.' },
+    valueEth: { type: 'string', default: '0', description: 'Native ETH value as a decimal string.' },
+    valueWei: { type: 'string', description: 'Alternative native value in wei.' },
+  },
+};
+
+app.get('/', (req, res) => {
+  if (req.get('accept')?.includes('text/html')) {
+    res.sendFile('index.html', { root: `${process.cwd()}/public` });
+    return;
+  }
   res.json({
     product: 'Arbitrum MPP Wallet Preflight API',
     network: network.name,
@@ -44,6 +64,21 @@ app.get('/', (_req, res) => {
     priceUsdc: (Number(config.priceRawUsdc) / 1_000_000).toString(),
     paidEndpoint: '/api/preflight/:address',
     transactionPreflight: 'POST /v1/preflight',
+    x402Preflight: config.enableX402 ? 'POST /x402/v1/preflight' : 'available after CDP activation',
+    mcp: 'npm run mcp',
+    discovery: ['/openapi.json', '/llms.txt', '/.well-known/agent.json'],
+  });
+});
+
+app.get('/api', (_req, res) => {
+  res.json({
+    product: 'Arbitrum MPP Wallet Preflight API',
+    network: network.name,
+    chainId: config.chainId,
+    priceUsdc: (Number(config.priceRawUsdc) / 1_000_000).toString(),
+    mppEndpoint: '/v1/preflight',
+    x402Endpoint: config.enableX402 ? '/x402/v1/preflight' : null,
+    openapi: '/openapi.json',
   });
 });
 
@@ -83,7 +118,7 @@ app.get(
 
       res.json({
         address,
-        network: 'Arbitrum Sepolia',
+        network: network.name,
         chainId: config.chainId,
         accountType: bytecode && bytecode !== '0x' ? 'contract' : 'EOA',
         ethBalance: formatEther(balance),
@@ -98,6 +133,27 @@ app.get(
   },
 );
 
+const mppTransactionCharge = payments.charge({
+  amount: config.priceRawUsdc,
+  currency: usdc,
+  recipient: merchant.address,
+  description: 'Arbitrum transaction simulation and risk report',
+  methodDetails: {
+    chainId: config.chainId,
+    credentialTypes: ['authorization'],
+  },
+});
+
+async function sendPreflightReport(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const input = res.locals.preflightInput ?? parsePreflightInput(req.body);
+    const report = await runPreflight(chainClient, input);
+    res.json(report);
+  } catch (error) {
+    next(error);
+  }
+}
+
 app.post(
   '/v1/preflight',
   (req, res, next) => {
@@ -108,25 +164,102 @@ app.post(
       res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid request' });
     }
   },
-  payments.charge({
-    amount: config.priceRawUsdc,
-    currency: defaults.TOKEN_CONTRACTS.USDC_ARBITRUM_SEPOLIA,
-    recipient: merchant.address,
-    description: 'Arbitrum transaction simulation and risk report',
-    methodDetails: {
-      chainId: config.chainId,
-      credentialTypes: ['authorization'],
-    },
-  }),
-  async (_req, res, next) => {
-    try {
-      const report = await runPreflight(chainClient, res.locals.preflightInput);
-      res.json(report);
-    } catch (error) {
-      next(error);
-    }
-  },
+  mppTransactionCharge,
+  sendPreflightReport,
 );
+
+discovery(app, payments, {
+  info: { title: 'Arbitrum Transaction Preflight API', version: '4.0.0' },
+  serviceInfo: {
+    name: 'Arbitrum MPP Wallet Preflight',
+    description: 'Paid transaction simulation, gas estimation, approval detection, and risk scoring for Arbitrum wallets and AI agents.',
+    categories: ['blockchain', 'security', 'ai'],
+    docs: {
+      homepage: config.serverUrl,
+      apiReference: `${config.serverUrl}/openapi.json`,
+      llms: `${config.serverUrl}/llms.txt`,
+      github: 'https://github.com/naur9n/arbitrum-mpp-transaction-preflight',
+    },
+  },
+  routes: [{
+    handler: mppTransactionCharge,
+    method: 'post',
+    path: '/v1/preflight',
+    summary: 'Simulate and risk-score an Arbitrum transaction before signing.',
+    requestBody: preflightRequestSchema,
+  }],
+});
+
+app.get('/llms.txt', (_req, res) => {
+  res.type('text/plain').send([
+    '# Arbitrum Transaction Preflight API',
+    '',
+    'Paid transaction simulation and risk scoring for Arbitrum One.',
+    `Price: ${Number(config.priceRawUsdc) / 1_000_000} USDC per request.`,
+    'MPP endpoint: POST /v1/preflight',
+    ...(config.enableX402 ? ['x402 endpoint: POST /x402/v1/preflight'] : []),
+    'OpenAPI: /openapi.json',
+    'Input JSON: {"from":"0x...","to":"0x...","data":"0x","valueEth":"0"}',
+    'Output: simulation status, gas estimate, approval analysis, risk score, warnings, and checked block.',
+  ].join('\n'));
+});
+
+app.get('/.well-known/agent.json', (_req, res) => {
+  res.json({
+    name: 'Arbitrum Transaction Preflight',
+    description: 'Pre-sign transaction simulation and risk analysis for wallets and autonomous agents.',
+    url: config.serverUrl,
+    protocols: ['mpp', ...(config.enableX402 ? ['x402'] : [])],
+    network: `eip155:${config.chainId}`,
+    currency: usdc,
+    price: (Number(config.priceRawUsdc) / 1_000_000).toString(),
+    openapi: `${config.serverUrl}/openapi.json`,
+    llms: `${config.serverUrl}/llms.txt`,
+  });
+});
+
+if (config.enableX402) {
+  const x402Network = `eip155:${config.chainId}` as const;
+  const facilitatorClient = new HTTPFacilitatorClient(
+    createFacilitatorConfig(config.cdpApiKeyId, config.cdpApiKeySecret),
+  );
+  const x402Server = new x402ResourceServer(facilitatorClient)
+    .register(x402Network, new ExactEvmScheme());
+  const x402Price = `$${(Number(config.priceRawUsdc) / 1_000_000).toFixed(2)}`;
+
+  app.use(paymentMiddleware({
+    'POST /x402/v1/preflight': {
+      accepts: [{
+        scheme: 'exact',
+        price: x402Price,
+        network: x402Network,
+        payTo: merchant.address,
+      }],
+      description: 'Simulate and risk-score an Arbitrum transaction before signing.',
+      mimeType: 'application/json',
+      extensions: {
+        bazaar: {
+          discoverable: true,
+          category: 'security',
+          tags: ['arbitrum', 'wallet', 'transaction-simulation', 'risk', 'ai-agent'],
+          info: {
+            input: {
+              body: {
+                from: '0x0000000000000000000000000000000000000001',
+                to: '0x0000000000000000000000000000000000000002',
+                data: '0x',
+                valueEth: '0',
+              },
+            },
+          },
+        },
+      },
+    },
+  }, x402Server));
+
+  app.post('/x402/v1/preflight', sendPreflightReport);
+  console.log('x402 enabled: POST /x402/v1/preflight');
+}
 
 if (config.enableFreeDemo) {
   app.post('/demo/preflight', async (req, res, next) => {
